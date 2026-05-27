@@ -309,7 +309,13 @@ function Tareas({ tasks, toggleTask, delTask, addTask, editTask }) {
 /* ----------------------------- AGENDA ----------------------------- */
 function Agenda({ tasks, toggleTask }) {
   const [weekOff, setWeekOff] = useState(0);
+  const [dayView, setDayView] = useState(todayIdx);
   const HOURS = ["07:00","08:00","09:00","10:00","12:00","16:00","18:00","21:00"];
+
+  const dayTasks = tasks
+    .filter(t => t.day === dayView)
+    .sort((a, b) => a.time.localeCompare(b.time));
+
   return (
     <div className="stack">
       <div className="pagehead">
@@ -320,39 +326,70 @@ function Agenda({ tasks, toggleTask }) {
           <button type="button" className="iconbtn" onClick={() => setWeekOff(w => w + 1)}><ChevronRight size={18} /></button>
         </div>
       </div>
- 
-      <Card>
-        <div className="cal">
-          <div className="cal-head">
-            <div className="cal-corner" />
-            {DAYS.map((d, i) => (
-              <div key={i} className={`cal-day ${i === todayIdx && weekOff === 0 ? "today" : ""}`}>{d}</div>
-            ))}
+
+      <div className="cal-desktop">
+        <Card>
+          <div className="cal">
+            <div className="cal-head">
+              <div className="cal-corner" />
+              {DAYS.map((d, i) => (
+                <div key={i} className={`cal-day ${i === todayIdx && weekOff === 0 ? "today" : ""}`}>{d}</div>
+              ))}
+            </div>
+            <div className="cal-body">
+              {HOURS.map(h => (
+                <div key={h} className="cal-row">
+                  <div className="cal-time">{h}</div>
+                  {DAYS.map((_, di) => {
+                    const cell = tasks.filter(t => t.day === di && t.time === h);
+                    return (
+                      <div key={di} className="cal-cell">
+                        {cell.map(t => {
+                          const c = CATS[t.cat];
+                          return (
+                            <button key={t.id} type="button" className={`cal-ev ${t.done ? "done" : ""}`} style={{ "--c": c.color }} onClick={() => toggleTask(t.id)}>
+                              {t.title}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="cal-body">
-            {HOURS.map(h => (
-              <div key={h} className="cal-row">
-                <div className="cal-time">{h}</div>
-                {DAYS.map((_, di) => {
-                  const cell = tasks.filter(t => t.day === di && t.time === h);
-                  return (
-                    <div key={di} className="cal-cell">
-                      {cell.map(t => {
-                        const c = CATS[t.cat];
-                        return (
-                          <button key={t.id} type="button" className={`cal-ev ${t.done ? "done" : ""}`} style={{ "--c": c.color }} onClick={() => toggleTask(t.id)}>
-                            {t.title}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+        </Card>
+      </div>
+
+      <div className="cal-mobile">
+        <Card>
+          <div className="dayswitch">
+            <button type="button" className="iconbtn" onClick={() => setDayView(d => (d + 6) % 7)}><ChevronLeft size={18} /></button>
+            <div className="dayswitch-label">
+              <p className="big">{DAYS[dayView]}</p>
+              {dayView === todayIdx && <span className="today-pill">Hoy</span>}
+            </div>
+            <button type="button" className="iconbtn" onClick={() => setDayView(d => (d + 1) % 7)}><ChevronRight size={18} /></button>
           </div>
-        </div>
-      </Card>
+          <div className="daylist">
+            {dayTasks.length === 0 && <p className="dim center" style={{padding:"20px 0"}}>Sin tareas este día.</p>}
+            {dayTasks.map(t => {
+              const c = CATS[t.cat];
+              return (
+                <button key={t.id} type="button" className={`dayrow ${t.done ? "done" : ""}`} style={{ "--c": c.color }} onClick={() => toggleTask(t.id)}>
+                  <span className="dayrow-time">{t.time}</span>
+                  <div className="dayrow-main">
+                    <span className="dayrow-title">{t.title}</span>
+                    <span className="rowmeta"><c.Icon size={12} style={{ color: c.color }} /> {c.label}</span>
+                  </div>
+                  <span className="dayrow-check">{t.done && <Check size={15} />}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -675,6 +712,17 @@ h1,h2,h3,h4{font-family:'Sora',sans-serif;font-weight:700;letter-spacing:-.02em}
 .fchip.on{background:rgba(52,211,153,.16);color:var(--em);border-color:rgba(52,211,153,.35)}
  
 .cal{overflow:auto}
+.cal-mobile{display:none}
+.dayswitch{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.dayswitch-label{text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+.today-pill{font-size:11px;color:#34d399;background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.25);padding:2px 10px;border-radius:10px}
+.daylist{display:flex;flex-direction:column;gap:10px}
+.dayrow{display:flex;align-items:center;gap:14px;padding:15px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-left:3px solid var(--c);cursor:pointer;text-align:left;color:#eafff6;font-family:inherit;width:100%}
+.dayrow.done{opacity:.55}.dayrow.done .dayrow-title{text-decoration:line-through}
+.dayrow-time{font-size:14px;font-weight:700;color:var(--c);min-width:48px}
+.dayrow-main{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.dayrow-title{font-size:15px;font-weight:700}
+.dayrow-check{color:#34d399;flex-shrink:0}
 .cal-head,.cal-row{display:grid;grid-template-columns:90px repeat(7,1fr)}
 .cal-day,.cal-time,.cal-cell{border:1px solid rgba(255,255,255,.05)}
 .cal-day{padding:14px;text-align:center;font-weight:700;background:rgba(255,255,255,.03)}
@@ -790,6 +838,8 @@ button{font-family:inherit}
   .task-grid{grid-template-columns:1fr 1fr}
   .modeswitch{width:100%}
   .timer-time{font-size:44px}
+  .cal-desktop{display:none}
+  .cal-mobile{display:block}
 }
 `}</style>
   );
