@@ -37,56 +37,60 @@ const REPEAT_OPTS = [
   { id: "daily",    label: "Todos los días",  days: [0,1,2,3,4,5,6] },
 ];
 
-/* ----------------------------- RUTINA DE GYM ----------------------------- */
-const GYM_PLAN = {
-  0: { name: "Push", focus: "Pecho · Hombro · Tríceps", exs: [
-    { n: "Press banca plano", sets: 4, reps: "6-8" },
-    { n: "Press inclinado mancuerna", sets: 3, reps: "8-10" },
-    { n: "Aperturas inclinadas", sets: 3, reps: "12" },
-    { n: "Press militar mancuerna", sets: 3, reps: "8-10" },
-    { n: "Elevaciones laterales", sets: 4, reps: "15" },
-    { n: "Tríceps polea cuerda", sets: 3, reps: "12" },
-    { n: "Fondos asistidos o libres", sets: 3, reps: "fallo" },
+/* ----------------------------- RUTINA DE GYM (editable) ----------------------------- */
+/* Estructura: array de "días de rutina". Cada día tiene id, name, focus, weekday (0-6 o null si suelto),
+   rest (bool), y exs[] con {id, n, sets, reps}. El usuario puede crear/editar/borrar todo. */
+let _gid = 1;
+const gx = (n, sets, reps) => ({ id: `e${Date.now()}_${_gid++}`, n, sets, reps });
+const SEED_GYM = [
+  { id: "d1", name: "Push", focus: "Pecho · Hombro · Tríceps", weekday: 0, rest: false, exs: [
+    gx("Press banca plano", 4, "6-8"),
+    gx("Press inclinado mancuerna", 3, "8-10"),
+    gx("Aperturas inclinadas", 3, "12"),
+    gx("Press militar mancuerna", 3, "8-10"),
+    gx("Elevaciones laterales", 4, "15"),
+    gx("Tríceps polea cuerda", 3, "12"),
+    gx("Fondos asistidos o libres", 3, "fallo"),
   ]},
-  1: { name: "Pull", focus: "Espalda · Bíceps", exs: [
-    { n: "Dominadas (asistidas si hace falta)", sets: 4, reps: "fallo" },
-    { n: "Remo barra", sets: 4, reps: "8" },
-    { n: "Jalón al pecho", sets: 3, reps: "10" },
-    { n: "Remo sentado polea", sets: 3, reps: "12" },
-    { n: "Face pulls", sets: 4, reps: "15" },
-    { n: "Curl barra", sets: 3, reps: "10" },
-    { n: "Curl martillo", sets: 3, reps: "12" },
+  { id: "d2", name: "Pull", focus: "Espalda · Bíceps", weekday: 1, rest: false, exs: [
+    gx("Dominadas (asistidas si hace falta)", 4, "fallo"),
+    gx("Remo barra", 4, "8"),
+    gx("Jalón al pecho", 3, "10"),
+    gx("Remo sentado polea", 3, "12"),
+    gx("Face pulls", 4, "15"),
+    gx("Curl barra", 3, "10"),
+    gx("Curl martillo", 3, "12"),
   ]},
-  2: { name: "Piernas + Core", focus: "Cuádriceps · Femoral · Abs", exs: [
-    { n: "Sentadilla", sets: 4, reps: "6-8" },
-    { n: "Prensa", sets: 4, reps: "12" },
-    { n: "Peso muerto rumano", sets: 3, reps: "10" },
-    { n: "Curl femoral", sets: 3, reps: "12" },
-    { n: "Extensiones cuádriceps", sets: 3, reps: "15" },
-    { n: "Gemelos", sets: 4, reps: "15" },
-    { n: "Crunch polea", sets: 3, reps: "15" },
-    { n: "Plancha", sets: 3, reps: "rounds" },
+  { id: "d3", name: "Piernas + Core", focus: "Cuádriceps · Femoral · Abs", weekday: 2, rest: false, exs: [
+    gx("Sentadilla", 4, "6-8"),
+    gx("Prensa", 4, "12"),
+    gx("Peso muerto rumano", 3, "10"),
+    gx("Curl femoral", 3, "12"),
+    gx("Extensiones cuádriceps", 3, "15"),
+    gx("Gemelos", 4, "15"),
+    gx("Crunch polea", 3, "15"),
+    gx("Plancha", 3, "rounds"),
   ]},
-  3: null, // Jueves descanso
-  4: { name: "Push B", focus: "Enfoque hombro aesthetic", exs: [
-    { n: "Press inclinado barra", sets: 4, reps: "8" },
-    { n: "Press hombro mancuerna", sets: 3, reps: "10" },
-    { n: "Elevaciones laterales", sets: 5, reps: "15" },
-    { n: "Elevaciones posteriores", sets: 4, reps: "15" },
-    { n: "Cruce poleas", sets: 3, reps: "15" },
-    { n: "Tríceps cuerda", sets: 3, reps: "15" },
+  { id: "d4", name: "Descanso", focus: "Caminata · movilidad · agua · sueño", weekday: 3, rest: true, exs: [] },
+  { id: "d5", name: "Push B", focus: "Enfoque hombro aesthetic", weekday: 4, rest: false, exs: [
+    gx("Press inclinado barra", 4, "8"),
+    gx("Press hombro mancuerna", 3, "10"),
+    gx("Elevaciones laterales", 5, "15"),
+    gx("Elevaciones posteriores", 4, "15"),
+    gx("Cruce poleas", 3, "15"),
+    gx("Tríceps cuerda", 3, "15"),
   ]},
-  5: { name: "Pull B + Pierna", focus: "Espalda ancha · Glúteo", exs: [
-    { n: "Dominadas", sets: 4, reps: "fallo" },
-    { n: "Pullover polea", sets: 3, reps: "15" },
-    { n: "Jalón unilateral", sets: 3, reps: "12" },
-    { n: "Curl inclinado", sets: 3, reps: "12" },
-    { n: "Bulgarian split squat", sets: 3, reps: "12" },
-    { n: "Gemelos", sets: 4, reps: "20" },
-    { n: "Ab wheel", sets: 3, reps: "12" },
+  { id: "d6", name: "Pull B + Pierna", focus: "Espalda ancha · Glúteo", weekday: 5, rest: false, exs: [
+    gx("Dominadas", 4, "fallo"),
+    gx("Pullover polea", 3, "15"),
+    gx("Jalón unilateral", 3, "12"),
+    gx("Curl inclinado", 3, "12"),
+    gx("Bulgarian split squat", 3, "12"),
+    gx("Gemelos", 4, "20"),
+    gx("Ab wheel", 3, "12"),
   ]},
-  6: null, // Domingo descanso
-};
+  { id: "d7", name: "Descanso", focus: "Descanso total", weekday: 6, rest: true, exs: [] },
+];
 
 /* ----------------------------- BASE DE ALIMENTOS (Argentina) ----------------------------- */
 /* kcal, proteína, grasa, carbohidrato — todos por 100g salvo que diga unidad */
@@ -325,7 +329,8 @@ export default function TempleOS() {
   const [habits, setHabits] = useState(() => load("temple_habits_v3", SEED_HABITS));
   const [focus, setFocus]   = useState(() => load("temple_focus_v2", SEED_FOCUS));
   const [notif, setNotif]   = useState(() => load("temple_notif", { enabled: false, status: "default" }));
-  const [gymLog, setGymLog] = useState(() => load("temple_gym_v1", {})); // { 'YYYY-MM-DD': { dayIdx, ticks: [n_serie] } }
+  const [gymLog, setGymLog] = useState(() => load("temple_gym_v1", {})); // { 'YYYY-MM-DD_dayId': { ticks: {exId: n} } }
+  const [routine, setRoutine] = useState(() => load("temple_gym_routine_v1", SEED_GYM));
   const [nutriLog, setNutriLog] = useState(() => load("temple_nutri_v1", {})); // { 'YYYY-MM-DD': [{id, qty, isUnit}] }
   const [nutriGoals, setNutriGoals] = useState(() => load("temple_nutri_goals", DEFAULT_NUTRI_GOALS));
 
@@ -334,6 +339,7 @@ export default function TempleOS() {
   useEffect(() => { localStorage.setItem("temple_focus_v2", JSON.stringify(focus)); }, [focus]);
   useEffect(() => { localStorage.setItem("temple_notif", JSON.stringify(notif)); }, [notif]);
   useEffect(() => { localStorage.setItem("temple_gym_v1", JSON.stringify(gymLog)); }, [gymLog]);
+  useEffect(() => { localStorage.setItem("temple_gym_routine_v1", JSON.stringify(routine)); }, [routine]);
   useEffect(() => { localStorage.setItem("temple_nutri_v1", JSON.stringify(nutriLog)); }, [nutriLog]);
   useEffect(() => { localStorage.setItem("temple_nutri_goals", JSON.stringify(nutriGoals)); }, [nutriGoals]);
 
@@ -424,7 +430,7 @@ export default function TempleOS() {
   const shared = { tasks, habits, focus, goals, todayTasks, doneToday, pctToday,
     focusToday, totalStreak, notif, toggleNotif,
     toggleTask, delTask, addTask, editTask, toggleHabit, addHabit, delHabit, addFocus, setTab,
-    gymLog, setGymLog, nutriLog, setNutriLog, nutriGoals, setNutriGoals };
+    gymLog, setGymLog, routine, setRoutine, nutriLog, setNutriLog, nutriGoals, setNutriGoals };
 
   return (
     <div className="tos">
@@ -786,132 +792,245 @@ function Habitos({ habits, toggleHabit, addHabit, delHabit }) {
   );
 }
 
-/* ============================== GYM ============================== */
-function Gym({ gymLog, setGymLog }) {
-  const [dayView, setDayView] = useState(todayIdx);
+/* ============================== GYM (editable) ============================== */
+const newEx = () => ({ id: `e${Date.now()}_${Math.floor(Math.random()*9999)}`, n: "Ejercicio nuevo", sets: 3, reps: "10" });
+const newDay = () => ({ id: `d${Date.now()}`, name: "Día nuevo", focus: "", weekday: null, rest: false, exs: [newEx()] });
+
+function Gym({ gymLog, setGymLog, routine, setRoutine }) {
+  const [editMode, setEditMode] = useState(false);
+  // día activo: el primero que coincide con hoy, o el primero de la lista
+  const [activeId, setActiveId] = useState(() => {
+    const match = routine.find(d => d.weekday === todayIdx);
+    return match ? match.id : (routine[0]?.id || null);
+  });
   const today = todayKey();
-  const plan = GYM_PLAN[dayView];
+  const day = routine.find(d => d.id === activeId) || routine[0];
 
-  const sessionKey = `${today}_${dayView}`;
+  if (!day) {
+    return (
+      <div className="stack">
+        <div className="pagehead"><h2 className="h2">Gym</h2></div>
+        <Card>
+          <div className="rest-day">
+            <Dumbbell size={36} color="#34d399"/>
+            <h3 className="h3" style={{marginTop:14}}>No hay días en tu rutina</h3>
+            <button type="button" className="primary" style={{marginTop:18}} onClick={() => { const d = newDay(); setRoutine([d]); setActiveId(d.id); setEditMode(true); }}>
+              <Plus size={18}/> Crear primer día
+            </button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  const sessionKey = `${today}_${day.id}`;
   const session = gymLog[sessionKey] || { ticks: {} };
-
-  const totalSets = plan ? plan.exs.reduce((s,e) => s+e.sets, 0) : 0;
+  const totalSets = day.rest ? 0 : day.exs.reduce((s,e) => s + (Number(e.sets)||0), 0);
   const doneSets = Object.values(session.ticks || {}).reduce((s,v) => s+v, 0);
   const pct = totalSets ? Math.round(doneSets/totalSets*100) : 0;
 
-  const tickSet = (exIdx, setIdx) => {
+  /* tildar serie por exId */
+  const tickSet = (exId, setIdx, exSets) => {
     setGymLog(prev => {
-      const k = sessionKey;
-      const cur = prev[k] || { ticks: {} };
-      const exTicks = cur.ticks[exIdx] || 0;
-      const newCount = setIdx < exTicks ? exIdx : exTicks + 1;
-      // Toggle simple: si toco una serie ya marcada hacia abajo, destildo desde ahí
+      const cur = prev[sessionKey] || { ticks: {} };
+      const exTicks = cur.ticks[exId] || 0;
       const target = setIdx + 1 <= exTicks ? setIdx : setIdx + 1;
-      return { ...prev, [k]: { ...cur, dayIdx: dayView, ticks: { ...cur.ticks, [exIdx]: target } } };
+      return { ...prev, [sessionKey]: { ...cur, ticks: { ...cur.ticks, [exId]: target } } };
     });
   };
   const resetDay = () => {
-    if (!confirm("¿Borrar el progreso de este día?")) return;
-    setGymLog(prev => {
-      const c = { ...prev }; delete c[sessionKey]; return c;
+    if (!confirm("¿Borrar el progreso de hoy de este día?")) return;
+    setGymLog(prev => { const c = { ...prev }; delete c[sessionKey]; return c; });
+  };
+
+  /* ---- edición de rutina ---- */
+  const updDay = (patch) => setRoutine(r => r.map(d => d.id === day.id ? { ...d, ...patch } : d));
+  const updEx = (exId, patch) => setRoutine(r => r.map(d => d.id === day.id ? { ...d, exs: d.exs.map(e => e.id === exId ? { ...e, ...patch } : e) } : d));
+  const addExercise = () => setRoutine(r => r.map(d => d.id === day.id ? { ...d, exs: [...d.exs, newEx()] } : d));
+  const delExercise = (exId) => setRoutine(r => r.map(d => d.id === day.id ? { ...d, exs: d.exs.filter(e => e.id !== exId) } : d));
+  const moveEx = (exId, dir) => setRoutine(r => r.map(d => {
+    if (d.id !== day.id) return d;
+    const i = d.exs.findIndex(e => e.id === exId);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= d.exs.length) return d;
+    const exs = [...d.exs]; [exs[i], exs[j]] = [exs[j], exs[i]];
+    return { ...d, exs };
+  }));
+  const addRoutineDay = () => { const d = newDay(); setRoutine(r => [...r, d]); setActiveId(d.id); };
+  const delRoutineDay = () => {
+    if (!confirm(`¿Eliminar el día "${day.name}"? Se borra de tu rutina.`)) return;
+    setRoutine(r => {
+      const filtered = r.filter(d => d.id !== day.id);
+      setActiveId(filtered[0]?.id || null);
+      return filtered;
     });
   };
 
-  /* días entrenados de la semana actual (lun a dom) */
+  /* días entrenados esta semana */
   const weekTrained = useMemo(() => {
-    const days = [];
-    const now = new Date();
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - ((todayIdx - i + 7) % 7));
-      const key = d.toISOString().slice(0,10);
-      const dayMatches = Object.keys(gymLog).some(k => k.startsWith(key) && (gymLog[k].ticks && Object.values(gymLog[k].ticks).some(v => v > 0)));
-      days.push(dayMatches);
-    }
+    const days = {};
+    routine.forEach(d => {
+      const now = new Date();
+      // buscar si hubo sesión con ticks en los últimos 7 días para este día
+      for (let i = 0; i < 7; i++) {
+        const dd = new Date(now); dd.setDate(now.getDate() - i);
+        const k = `${dd.toISOString().slice(0,10)}_${d.id}`;
+        if (gymLog[k] && gymLog[k].ticks && Object.values(gymLog[k].ticks).some(v => v > 0)) { days[d.id] = true; break; }
+      }
+    });
     return days;
-  }, [gymLog]);
+  }, [gymLog, routine]);
 
   return (
     <div className="stack">
       <div className="pagehead">
         <div>
           <h2 className="h2">Gym</h2>
-          <p className="dim sm">Plan 5 días · Fase 1 cut limpio</p>
+          <p className="dim sm">{routine.filter(d => !d.rest).length} días de entreno · {editMode ? "modo edición" : "modo entrenar"}</p>
         </div>
-        <div className="day-ring">
-          <Ring pct={pct} size={54}/>
-          <div><p className="big">{doneSets}/{totalSets}</p><p className="dim sm">series hoy</p></div>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          {!editMode && !day.rest && (
+            <div className="day-ring">
+              <Ring pct={pct} size={48}/>
+              <div><p className="big">{doneSets}/{totalSets}</p><p className="dim sm">series</p></div>
+            </div>
+          )}
+          <button type="button" className={`iconbtn ${editMode ? "edit-on" : ""}`} onClick={() => setEditMode(m => !m)} title={editMode ? "Terminar edición" : "Editar rutina"}>
+            {editMode ? <Check size={18}/> : <Pencil size={18}/>}
+          </button>
         </div>
       </div>
 
+      {/* selector de días */}
       <Card>
         <div className="gym-week">
-          {DAYS.map((d,i) => {
-            const has = !!GYM_PLAN[i];
-            const trained = weekTrained[i];
-            return (
-              <button key={i} type="button" className={`gym-day-pill ${dayView === i ? "on" : ""} ${!has ? "rest" : ""} ${trained ? "trained" : ""}`} onClick={() => setDayView(i)}>
-                <span className="gdp-day">{d}</span>
-                <span className="gdp-name">{has ? GYM_PLAN[i].name : "Descanso"}</span>
-                {trained && <Check size={11} className="gdp-check"/>}
-              </button>
-            );
-          })}
+          {routine.map(d => (
+            <button key={d.id} type="button" className={`gym-day-pill ${activeId === d.id ? "on" : ""} ${d.rest ? "rest" : ""} ${weekTrained[d.id] ? "trained" : ""}`} onClick={() => setActiveId(d.id)}>
+              <span className="gdp-day">{d.weekday !== null ? DAYS[d.weekday] : "—"}</span>
+              <span className="gdp-name">{d.name}</span>
+              {weekTrained[d.id] && <Check size={11} className="gdp-check"/>}
+            </button>
+          ))}
+          {editMode && (
+            <button type="button" className="gym-day-pill add" onClick={addRoutineDay}>
+              <Plus size={18}/>
+              <span className="gdp-name">Nuevo día</span>
+            </button>
+          )}
         </div>
       </Card>
 
-      {plan ? (
+      {/* ====== MODO EDICIÓN ====== */}
+      {editMode ? (
         <Card>
-          <div className="cardhead">
-            <div>
-              <h3 className="cardtitle">{plan.name}</h3>
-              <p className="dim sm">{plan.focus}</p>
-            </div>
-            {doneSets > 0 && <button type="button" className="ghostbtn" onClick={resetDay}><RotateCcw size={14}/> Reiniciar</button>}
+          <div className="edit-day-head">
+            <label className="edit-field">
+              <span>Nombre del día</span>
+              <input className="inp" value={day.name} onChange={e => updDay({ name: e.target.value })}/>
+            </label>
+            <label className="edit-field">
+              <span>Foco / músculos</span>
+              <input className="inp" value={day.focus} onChange={e => updDay({ focus: e.target.value })} placeholder="Ej: Pecho · Hombro"/>
+            </label>
+            <label className="edit-field">
+              <span>Día de la semana</span>
+              <select className="inp" value={day.weekday === null ? "" : day.weekday} onChange={e => updDay({ weekday: e.target.value === "" ? null : +e.target.value })}>
+                <option value="">Suelto</option>
+                {DAYS.map((d,i) => <option key={i} value={i}>{d}</option>)}
+              </select>
+            </label>
+            <label className="edit-field rest-toggle">
+              <span>¿Es descanso?</span>
+              <button type="button" className={`toggle ${day.rest ? "on" : ""}`} onClick={() => updDay({ rest: !day.rest })}>
+                {day.rest ? "Sí, descanso" : "No, entreno"}
+              </button>
+            </label>
           </div>
-          <div className="exlist">
-            {plan.exs.map((ex, exIdx) => {
-              const done = session.ticks?.[exIdx] || 0;
-              const sets = Array.from({length: ex.sets}, (_,i) => i);
-              return (
-                <div key={exIdx} className={`exrow ${done === ex.sets ? "complete" : ""}`}>
-                  <div className="exinfo">
-                    <p className="exname">{ex.n}</p>
-                    <p className="dim sm">{ex.sets} series · {ex.reps} reps</p>
+
+          {!day.rest && (
+            <>
+              <div className="exedit-list">
+                {day.exs.map((ex, i) => (
+                  <div key={ex.id} className="exedit">
+                    <div className="exedit-order">
+                      <button type="button" onClick={() => moveEx(ex.id, -1)} disabled={i === 0}><ChevronLeft size={14} style={{transform:"rotate(90deg)"}}/></button>
+                      <button type="button" onClick={() => moveEx(ex.id, 1)} disabled={i === day.exs.length-1}><ChevronRight size={14} style={{transform:"rotate(90deg)"}}/></button>
+                    </div>
+                    <input className="inp exedit-name" value={ex.n} onChange={e => updEx(ex.id, { n: e.target.value })} placeholder="Nombre del ejercicio"/>
+                    <input className="inp exedit-num" type="number" min="1" value={ex.sets} onChange={e => updEx(ex.id, { sets: Math.max(1, +e.target.value || 1) })} title="Series"/>
+                    <span className="exedit-x">×</span>
+                    <input className="inp exedit-reps" value={ex.reps} onChange={e => updEx(ex.id, { reps: e.target.value })} placeholder="reps" title="Reps"/>
+                    <button type="button" className="rowdel" onClick={() => delExercise(ex.id)}><Trash2 size={15}/></button>
                   </div>
-                  <div className="exsets">
-                    {sets.map(s => (
-                      <button key={s} type="button" className={`setbtn ${s < done ? "on" : ""}`} onClick={() => tickSet(exIdx, s)}>
-                        {s < done ? <Check size={14}/> : s+1}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+              <button type="button" className="ghostbtn" style={{marginTop:14}} onClick={addExercise}><Plus size={14}/> Agregar ejercicio</button>
+            </>
+          )}
+
+          <div className="edit-day-footer">
+            <button type="button" className="rowdel-btn" onClick={delRoutineDay}><Trash2 size={15}/> Eliminar este día</button>
           </div>
         </Card>
       ) : (
-        <Card>
-          <div className="rest-day">
-            <Leaf size={36} color="#34d399"/>
-            <h3 className="h3" style={{marginTop:14}}>Día de descanso</h3>
-            <p className="dim center" style={{maxWidth:380,marginTop:10}}>
-              Caminata · movilidad · agua · sueño.<br/>
-              El músculo se construye descansando, no entrenando.
-            </p>
+        /* ====== MODO ENTRENAR ====== */
+        day.rest ? (
+          <Card>
+            <div className="rest-day">
+              <Leaf size={36} color="#34d399"/>
+              <h3 className="h3" style={{marginTop:14}}>{day.name}</h3>
+              <p className="dim center" style={{maxWidth:380,marginTop:10}}>
+                {day.focus || "Caminata · movilidad · agua · sueño."}<br/>
+                El músculo se construye descansando, no entrenando.
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <div className="cardhead">
+              <div>
+                <h3 className="cardtitle">{day.name}</h3>
+                <p className="dim sm">{day.focus}</p>
+              </div>
+              {doneSets > 0 && <button type="button" className="ghostbtn" onClick={resetDay}><RotateCcw size={14}/> Reiniciar</button>}
+            </div>
+            <div className="exlist">
+              {day.exs.length === 0 && <p className="dim">Este día no tiene ejercicios. Tocá el lápiz para agregar.</p>}
+              {day.exs.map((ex) => {
+                const done = session.ticks?.[ex.id] || 0;
+                const nSets = Number(ex.sets) || 0;
+                const sets = Array.from({length: nSets}, (_,i) => i);
+                return (
+                  <div key={ex.id} className={`exrow ${done === nSets && nSets > 0 ? "complete" : ""}`}>
+                    <div className="exinfo">
+                      <p className="exname">{ex.n}</p>
+                      <p className="dim sm">{ex.sets} series · {ex.reps} reps</p>
+                    </div>
+                    <div className="exsets">
+                      {sets.map(s => (
+                        <button key={s} type="button" className={`setbtn ${s < done ? "on" : ""}`} onClick={() => tickSet(ex.id, s, nSets)}>
+                          {s < done ? <Check size={14}/> : s+1}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )
+      )}
+
+      {!editMode && (
+        <Card title="Tus números de Fase 1 (3 meses)">
+          <div className="gym-stats-grid">
+            <div className="gms-item"><p className="dim sm">Peso actual</p><p className="big">74 kg</p></div>
+            <div className="gms-item"><p className="dim sm">Meta 3 meses</p><p className="big">69 kg</p></div>
+            <div className="gms-item"><p className="dim sm">Días/semana</p><p className="big">{routine.filter(d => !d.rest).length}</p></div>
+            <div className="gms-item"><p className="dim sm">Cardio post</p><p className="big">15-20′</p></div>
           </div>
         </Card>
       )}
-
-      <Card title="Tus números de Fase 1 (3 meses)">
-        <div className="gym-stats-grid">
-          <div className="gms-item"><p className="dim sm">Peso actual</p><p className="big">74 kg</p></div>
-          <div className="gms-item"><p className="dim sm">Meta 3 meses</p><p className="big">69 kg</p></div>
-          <div className="gms-item"><p className="dim sm">Días/semana</p><p className="big">5</p></div>
-          <div className="gms-item"><p className="dim sm">Cardio post</p><p className="big">15-20′</p></div>
-        </div>
-      </Card>
     </div>
   );
 }
@@ -1459,6 +1578,27 @@ h1,h2,h3,h4{font-family:'Sora',sans-serif;font-weight:700;letter-spacing:-.02em}
 .rest-day{display:flex;flex-direction:column;align-items:center;padding:40px 20px;text-align:center}
 .gym-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .gms-item{background:rgba(0,0,0,.2);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center}
+.iconbtn.edit-on{background:#34d399;color:#03130d;border-color:#34d399}
+.gym-day-pill.add{border-style:dashed;color:var(--dim);justify-content:center}
+.gym-day-pill.add:hover{color:#34d399;border-color:rgba(52,211,153,.4)}
+.edit-day-head{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.edit-field{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--dim)}
+.edit-field span{font-weight:600}
+.rest-toggle .toggle{height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.06);color:#eafff6;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px}
+.rest-toggle .toggle.on{background:rgba(52,211,153,.18);border-color:rgba(52,211,153,.35);color:#34d399}
+.exedit-list{display:flex;flex-direction:column;gap:10px}
+.exedit{display:flex;align-items:center;gap:8px;padding:10px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.exedit-order{display:flex;flex-direction:column;gap:2px}
+.exedit-order button{width:26px;height:20px;border:none;background:rgba(255,255,255,.05);color:var(--dim);border-radius:6px;cursor:pointer;display:grid;place-items:center}
+.exedit-order button:hover:not(:disabled){background:rgba(52,211,153,.15);color:#34d399}
+.exedit-order button:disabled{opacity:.25;cursor:not-allowed}
+.exedit-name{flex:1;min-width:0;height:42px}
+.exedit-num{width:56px;height:42px;text-align:center;padding:0 6px}
+.exedit-reps{width:70px;height:42px;text-align:center;padding:0 8px}
+.exedit-x{color:var(--dim);font-size:13px}
+.edit-day-footer{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end}
+.rowdel-btn{display:inline-flex;align-items:center;gap:8px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:#ff7b7b;padding:11px 18px;border-radius:14px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px}
+.rowdel-btn:hover{background:rgba(248,113,113,.2)}
 
 /* NUTRI */
 .macrobig{display:grid;grid-template-columns:1fr 1fr;gap:24px}
@@ -1556,6 +1696,12 @@ button{font-family:inherit}
   .modeswitch{width:100%}
   .timer-time{font-size:44px}
   .gym-week{grid-template-columns:repeat(4,1fr)}
+  .edit-day-head{grid-template-columns:1fr}
+  .exedit{flex-wrap:wrap}
+  .exedit-name{flex-basis:100%;order:1}
+  .exedit-order{order:2}
+  .exedit-num,.exedit-x,.exedit-reps{order:3}
+  .exedit .rowdel{order:4;margin-left:auto}
   .exrow{flex-direction:column;align-items:stretch;gap:12px}
   .exsets{justify-content:flex-start}
   .foodrow{flex-direction:column;align-items:stretch;gap:10px}
