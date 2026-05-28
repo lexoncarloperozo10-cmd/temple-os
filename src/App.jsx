@@ -288,11 +288,11 @@ const SEED_TASKS = [
   { id: 5, title: "Lectura 30 min",        time: "21:00", day: todayIdx,        cat: "disciplina", done: false },
 ];
 const SEED_HABITS = [
-  { id: 1, name: "Dormir 7h+",  iconKey: "wind",  streak: 0, week: [0,0,0,0,0,0,0] },
-  { id: 2, name: "3L de agua",  iconKey: "water", streak: 0, week: [0,0,0,0,0,0,0] },
-  { id: 3, name: "Sin redes",   iconKey: "phone", streak: 0, week: [0,0,0,0,0,0,0] },
-  { id: 4, name: "Leer 30 min", iconKey: "book",  streak: 0, week: [0,0,0,0,0,0,0] },
-  { id: 5, name: "Gym",         iconKey: "gym",   streak: 0, week: [0,0,0,0,0,0,0] },
+  { id: 1, name: "Despertar",   iconKey: "wind",  time: "06:30", streak: 0, week: [0,0,0,0,0,0,0] },
+  { id: 2, name: "3L de agua",  iconKey: "water", time: "",      streak: 0, week: [0,0,0,0,0,0,0] },
+  { id: 3, name: "Gym",         iconKey: "gym",   time: "10:00", streak: 0, week: [0,0,0,0,0,0,0] },
+  { id: 4, name: "Leer 30 min", iconKey: "book",  time: "21:00", streak: 0, week: [0,0,0,0,0,0,0] },
+  { id: 5, name: "Sin redes",   iconKey: "phone", time: "",      streak: 0, week: [0,0,0,0,0,0,0] },
 ];
 const SEED_FOCUS = [0, 0, 0, 0, 0, 0, 0];
 
@@ -326,7 +326,7 @@ const showNotif = async (title, body) => {
 export default function TempleOS() {
   const [tab, setTab] = useState("inicio");
   const [tasks, setTasks]   = useState(() => load("temple_tasks_v3", SEED_TASKS));
-  const [habits, setHabits] = useState(() => load("temple_habits_v3", SEED_HABITS));
+  const [habits, setHabits] = useState(() => load("temple_habits_v4", SEED_HABITS));
   const [focus, setFocus]   = useState(() => load("temple_focus_v2", SEED_FOCUS));
   const [notif, setNotif]   = useState(() => load("temple_notif", { enabled: false, status: "default" }));
   const [gymLog, setGymLog] = useState(() => load("temple_gym_v1", {})); // { 'YYYY-MM-DD_dayId': { ticks: {exId: n} } }
@@ -335,7 +335,7 @@ export default function TempleOS() {
   const [nutriGoals, setNutriGoals] = useState(() => load("temple_nutri_goals", DEFAULT_NUTRI_GOALS));
 
   useEffect(() => { localStorage.setItem("temple_tasks_v3", JSON.stringify(tasks)); }, [tasks]);
-  useEffect(() => { localStorage.setItem("temple_habits_v3", JSON.stringify(habits)); }, [habits]);
+  useEffect(() => { localStorage.setItem("temple_habits_v4", JSON.stringify(habits)); }, [habits]);
   useEffect(() => { localStorage.setItem("temple_focus_v2", JSON.stringify(focus)); }, [focus]);
   useEffect(() => { localStorage.setItem("temple_notif", JSON.stringify(notif)); }, [notif]);
   useEffect(() => { localStorage.setItem("temple_gym_v1", JSON.stringify(gymLog)); }, [gymLog]);
@@ -359,11 +359,20 @@ export default function TempleOS() {
           }
         }
       });
+      habits.forEach(h => {
+        if (h.time === hhmm && !h.week[todayIdx]) {
+          const key = `notified_hab_${h.id}_${now.toDateString()}`;
+          if (!sessionStorage.getItem(key)) {
+            sessionStorage.setItem(key, "1");
+            showNotif("Hábito: " + h.name, `${h.time} · no olvides marcarlo`);
+          }
+        }
+      });
     };
     tick();
     const iv = setInterval(tick, 30000);
     return () => clearInterval(iv);
-  }, [notif.enabled, tasks]);
+  }, [notif.enabled, tasks, habits]);
 
   const todayTasks = tasks.filter(t => t.day === todayIdx);
   const doneToday = todayTasks.filter(t => t.done).length;
@@ -398,7 +407,8 @@ export default function TempleOS() {
     const w = [...h.week]; const was = w[todayIdx]; w[todayIdx] = was ? 0 : 1;
     return { ...h, week: w, streak: Math.max(0, h.streak + (was ? -1 : 1)) };
   }));
-  const addHabit = (name) => setHabits(p => [...p, { id: Date.now(), name, iconKey: "leaf", streak: 0, week: [0,0,0,0,0,0,0] }]);
+  const addHabit = (name, time = "") => setHabits(p => [...p, { id: Date.now(), name, iconKey: "leaf", time, streak: 0, week: [0,0,0,0,0,0,0] }]);
+  const editHabit = (id, patch) => setHabits(p => p.map(h => h.id === id ? { ...h, ...patch } : h));
   const delHabit = (id) => setHabits(p => p.filter(h => h.id !== id));
   const addFocus = (min) => setFocus(p => p.map((v, i) => i === todayIdx ? v + min : v));
 
@@ -429,7 +439,7 @@ export default function TempleOS() {
 
   const shared = { tasks, habits, focus, goals, todayTasks, doneToday, pctToday,
     focusToday, totalStreak, notif, toggleNotif,
-    toggleTask, delTask, addTask, editTask, toggleHabit, addHabit, delHabit, addFocus, setTab,
+    toggleTask, delTask, addTask, editTask, toggleHabit, addHabit, editHabit, delHabit, addFocus, setTab,
     gymLog, setGymLog, routine, setRoutine, nutriLog, setNutriLog, nutriGoals, setNutriGoals };
 
   return (
@@ -747,12 +757,23 @@ function Agenda({ tasks, toggleTask }) {
 }
 
 /* ============================== HÁBITOS ============================== */
-function Habitos({ habits, toggleHabit, addHabit, delHabit }) {
+function Habitos({ habits, toggleHabit, addHabit, editHabit, delHabit }) {
   const [name, setName] = useState("");
+  const [time, setTime] = useState("");
   const consistency = habits.length
     ? Math.round(habits.reduce((s,h) => s + h.week.filter(Boolean).length, 0) / (habits.length*7) * 100)
     : 0;
-  const crear = () => { if (name.trim()) { addHabit(name.trim()); setName(""); } };
+  const crear = () => { if (name.trim()) { addHabit(name.trim(), time); setName(""); setTime(""); } };
+
+  /* orden: primero los que tienen hora (cronológico), después los sin hora */
+  const ordered = [...habits].sort((a, b) => {
+    const ta = a.time || "", tb = b.time || "";
+    if (ta && tb) return ta.localeCompare(tb);
+    if (ta && !tb) return -1;
+    if (!ta && tb) return 1;
+    return 0;
+  });
+
   return (
     <div className="stack">
       <div className="pagehead"><h2 className="h2">Hábitos</h2>
@@ -760,25 +781,42 @@ function Habitos({ habits, toggleHabit, addHabit, delHabit }) {
       </div>
       <Card title="Nuevo hábito">
         <div className="addbar">
-          <input className="inp grow" placeholder="Ej: 8.000 pasos, journaling…" value={name}
+          <input className="inp grow" placeholder="Ej: Despertar, meditar, journaling…" value={name}
             onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && crear()}/>
+          <input className="inp" type="time" value={time} onChange={e => setTime(e.target.value)} title="Hora (opcional)"/>
           <button type="button" className="primary sm" onClick={crear}><Plus size={16}/> Crear</button>
         </div>
+        <p className="dim sm" style={{marginTop:10}}>La hora es opcional. Con hora se ordenan tu día; sin hora quedan al final como hábitos sueltos.</p>
       </Card>
       <Card>
         <div className="hablist">
-          {habits.length === 0 && <p className="dim">No hay hábitos.</p>}
-          {habits.map(h => {
+          {ordered.length === 0 && <p className="dim">No hay hábitos.</p>}
+          {ordered.map(h => {
             const HIcon = habitIcon(h.iconKey);
             return (
               <div key={h.id} className="habrow">
                 <div className="hableft">
+                  <div className="habtime-col">
+                    {h.time
+                      ? <span className="habtime">{h.time}</span>
+                      : <span className="habtime none">—</span>}
+                  </div>
                   <div className="habicon"><HIcon size={18}/></div>
-                  <div><p className="habname">{h.name}</p><p className="dim sm"><Flame size={11}/> {h.streak} días</p></div>
+                  <div className="habnamewrap">
+                    <p className="habname">{h.name}</p>
+                    <p className="dim sm"><Flame size={11}/> {h.streak} días</p>
+                  </div>
                 </div>
                 <div className="habweek">
                   {h.week.map((d,i) => <span key={i} className={`dot ${d ? "fill" : ""} ${i === todayIdx ? "today" : ""}`}>{DAYS[i][0]}</span>)}
                 </div>
+                <button type="button" className="rowedit" title="Editar hora" onClick={() => {
+                  const nueva = prompt(`Hora para "${h.name}" (formato HH:MM, vacío = sin hora)`, h.time || "");
+                  if (nueva === null) return;
+                  const v = nueva.trim();
+                  if (v === "" || /^([01]?\d|2[0-3]):[0-5]\d$/.test(v)) editHabit(h.id, { time: v });
+                  else alert("Hora inválida. Usá formato HH:MM, por ejemplo 06:30.");
+                }}><Pencil size={14}/></button>
                 <button type="button" className={`habtoggle ${h.week[todayIdx] ? "on" : ""}`} onClick={() => toggleHabit(h.id)}>
                   {h.week[todayIdx] ? <Check size={16}/> : <Plus size={16}/>}
                 </button>
@@ -1545,6 +1583,10 @@ h1,h2,h3,h4{font-family:'Sora',sans-serif;font-weight:700;letter-spacing:-.02em}
 .habrow{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px;border-radius:20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);transition:.25s}
 .habrow:hover{border-color:rgba(52,211,153,.2);background:rgba(255,255,255,.05)}
 .hableft{display:flex;align-items:center;gap:14px;min-width:0}
+.habtime-col{min-width:52px;display:flex;justify-content:center}
+.habtime{font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#34d399;background:rgba(52,211,153,.12);padding:5px 9px;border-radius:9px;border:1px solid rgba(52,211,153,.2)}
+.habtime.none{color:var(--dim);background:rgba(255,255,255,.04);border-color:var(--line);font-weight:400}
+.habnamewrap{min-width:0}
 .habicon{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:rgba(52,211,153,.12);color:#34d399;flex-shrink:0}
 .habname{font-weight:700}
 .habrow .sm{display:flex;align-items:center;gap:4px;margin-top:2px}
